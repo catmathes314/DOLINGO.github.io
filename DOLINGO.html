@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>環境單字挑戰</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700;800&family=Varela+Round&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box}
+    body{
+      font-family:'Open Sans','Varela Round',Arial,sans-serif;
+      background:#e5e5e5;display:flex;justify-content:center;align-items:flex-start;
+      min-height:100vh;margin:0;padding:20px 0;overflow-x:hidden;cursor:crosshair;
+    }
+    .container{
+      width:100%;max-width:700px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.15);
+      border-radius:12px;display:flex;flex-direction:column;min-height:80vh;overflow:hidden;
+      position:relative;transition:background-color .1s;
+    }
+    .header-bar{display:flex;align-items:center;padding:10px 20px;border-bottom:1px solid #e5e5e5;gap:15px}
+    .progress-bar-container{flex-grow:1;height:12px;background:#e5e5e5;border-radius:6px}
+    .progress-bar{height:100%;background:#58cc02;transition:width .3s;border-radius:6px}
+    .heart-container,.hourglass{font-size:1.5rem;font-weight:bold;display:flex;align-items:center}
+    .heart-container{color:#ff4b4b}.hourglass{color:#ffc800;width:50px}
+    .heart-container span,.hourglass span{margin-left:5px;font-size:1.1rem;color:#3c3c3c}
+    .lesson-area{padding:20px;flex-grow:1}
+    .lesson-area h1{color:#3c3c3c;font-size:1.5rem;margin-bottom:20px;text-align:center;border-bottom:3px solid #1cb0f6;padding-bottom:10px}
+    .mascot-area{display:flex;align-items:flex-end;margin-bottom:30px}
+    .mascot-image{width:80px;height:80px;background:#58cc02;border-radius:50%;margin-right:15px;border:4px solid #fff;box-shadow:0 0 10px rgba(0,0,0,.1);text-align:center;line-height:72px;font-size:2.5rem}
+    .speech-bubble{background:#fff;border:2px solid #e5e5e5;border-radius:15px;padding:15px;position:relative;box-shadow:0 4px 6px rgba(0,0,0,.05);font-weight:700;max-width:80%}
+    .speech-bubble::before,.speech-bubble::after{
+      content:'';position:absolute;bottom:-15px;left:20px;width:0;height:0;border:8px solid transparent;border-bottom:0;border-left:8px solid;
+    }
+    .speech-bubble::before{border-top-color:#e5e5e5;border-left-color:#e5e5e5}
+    .speech-bubble::after{bottom:-10px;border-top-color:#fff;border-left-color:#fff}
+    .word-display{font-size:2rem;font-weight:800;color:#1cb0f6;text-align:center;margin-bottom:20px;padding:10px;background:#f7f7f7;border-radius:8px}
+    .options-container{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:0 10px;margin-top:20px}
+    .option-button{
+      background:#fff;color:#3c3c3c;border:2px solid #e5e5e5;border-radius:15px;padding:15px 10px;font-size:1rem;cursor:pointer;
+      transition:.2s;outline:none;text-align:center;font-weight:700;min-height:60px
+    }
+    .option-button.selected{border-color:#1cb0f6;background:#e5f7ff;color:#1cb0f6}
+    .option-button.correct{border:2px solid #58cc02!important;color:#58cc02!important;background:#d7ffb8!important;opacity:1!important}
+    .option-button.incorrect{border:2px solid #ff4b4b!important;color:#ff4b4b!important;background:#fff0f0!important;opacity:.6}
+    .footer{padding:20px;display:flex;flex-direction:column;align-items:center;background:#fff;transition:background-color .3s;border-top:2px solid #e5e5e5}
+    .footer-correct{background:#d7ffb8;border-top-color:#58cc02}
+    .footer-incorrect{background:#ffc4c4;border-top-color:#ff4b4b}
+    #checkButton,#continueButton{
+      width:100%;padding:18px;font-size:1.2rem;font-weight:800;border:none;border-radius:18px;cursor:pointer;transition:background-color .1s;text-transform:uppercase
+    }
+    #checkButton:disabled{background:#e5e5e5;color:#afafaf;cursor:not-allowed}
+    #checkButton:not(:disabled){background:#58cc02;color:#fff}
+    #continueButton{background:#1cb0f6;color:#fff}
+    .feedback-message{margin-bottom:15px;font-size:1.1rem;font-weight:700;text-align:center;width:100%;min-height:25px}
+    .feedback-message.correct-text{color:#58cc02}.feedback-message.incorrect-text{color:#ff4b4b}
+    .hidden{display:none}
+    .bullet,.shrapnel,.owl-bullet{
+      position:absolute;border-radius:50%;opacity:.9;pointer-events:none;will-change:transform;
+    }
+    .bullet{width:15px;height:15px;background:#ff4b4b;box-shadow:0 0 5px rgba(255,75,75,.9);z-index:1000}
+    .shrapnel{width:8px;height:8px;background:#ffc800;opacity:.8;box-shadow:0 0 3px rgba(255,200,0,.8);z-index:1001}
+    .owl-bullet{width:16px;height:16px;background:#7b5cff;opacity:.95;box-shadow:0 0 6px rgba(123,92,255,.9);z-index:1002}
+    .explosion{position:absolute;width:30px;height:30px;border-radius:50%;background:rgba(255,75,75,.5);opacity:0;animation:explode .3s ease-out;pointer-events:none;z-index:999}
+    @keyframes explode{0%{transform:scale(.1);opacity:1}100%{transform:scale(1.5);opacity:0}}
+    .edge-flash{position:absolute;inset:0;pointer-events:none;border-radius:12px;opacity:0;z-index:2000}
+    .edge-flash.active{animation:edgeFlash 300ms ease-out forwards}
+    @keyframes edgeFlash{
+      0%{box-shadow:inset 0 0 0 10px rgba(255,75,75,.9), inset 0 0 40px 20px rgba(255,75,75,.35);opacity:1}
+      100%{box-shadow:inset 0 0 0 0 rgba(255,75,75,0), inset 0 0 0 0 rgba(255,75,75,0);opacity:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="gameContainer">
+    <div class="header-bar">
+      <button id="restartButton" style="background:none;border:none;font-size:1.3rem;cursor:pointer;">&#x21BB;</button>
+      <div class="progress-bar-container"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+      <div class="hourglass"><span id="timerDisplay">60</span><span style="font-size:.8em;">s</span></div>
+      <div id="progressText" style="font-weight:700;color:#3c3c3c;min-width:60px;text-align:center;">1 / 10</div>
+      <div class="heart-container"><span id="heartIcon">&#x2764;</span><span id="heartsDisplay">3</span></div>
+    </div>
+
+    <div class="lesson-area">
+      <div class="mascot-area">
+        <div class="mascot-image">&#x1F989;</div>
+        <div class="speech-bubble" id="mascotChat">嗨！我們來學點關於環境的酷單字吧！</div>
+      </div>
+
+      <h1>選擇正確的翻譯</h1>
+      <p id="wordToTranslate" class="word-display">Loading...</p>
+      <div class="options-container" id="optionsContainer"></div>
+    </div>
+
+    <footer class="footer" id="footer">
+      <div id="feedbackMessage" class="feedback-message"></div>
+      <button id="checkButton" disabled>檢查</button>
+      <button id="continueButton" class="hidden">繼續</button>
+    </footer>
+
+    <div id="edgeFlash" class="edge-flash" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // ====== 設定與資料 ======
+    const CONFIG = {
+      heartsInit: 10,
+      timerInit: 120,
+      hitCooldownMs: 500,
+      shrapnelCount: 10,
+      shrapnelSpeed: 6,
+      primaryFireInterval: 500,
+      primaryBulletSpeed: 5,
+      owlBurstInterval: 1200,
+      owlDashInterval: 3500,
+      owlBurstSpreadDeg: 10,
+    };
+
+    const BULLET_TYPES = {
+      primary: { className: 'bullet', damage: 2, size: 15 },
+      shrapnel: { className: 'shrapnel', damage: 1, size: 8 },
+      owl: { className: 'owl-bullet', damage: 2, size: 16 },
+    };
+
+    const VOCAB = [
+      { word: "Environmentalism", translation: "環境主義", options: ["極簡主義","環境主義","資本主義","實用主義"] },
+      { word: "Microcontaminants", translation: "微污染物", options: ["微生物","微型晶片","微污染物","微型馬達"] },
+      { word: "Overindustrialized", translation: "過度工業化的", options: ["工業革命","過度工業化的","全球化","城市化"] },
+      { word: "Deforestationary", translation: "與森林砍伐有關的", options: ["與森林砍伐有關的","沙漠化","生態系統","生物多樣性"] },
+      { word: "Conservationists", translation: "環境保護主義者", options: ["慈善家","工程師","環境保護主義者","科學家"] },
+      { word: "Recyclabilities", translation: "可回收性", options: ["永續性","耐用性","可回收性","可塑性"] },
+      { word: "Biodegradability", translation: "生物可分解性", options: ["水溶性","生物可分解性","抗腐蝕性","化學穩定性"] },
+      { word: "Ecofriendlynesses", translation: "環保友善性", options: ["環保友善性","高效能","低耗能","高污染"] },
+      { word: "Decarbonization", translation: "減碳化", options: ["核能發電","減碳化","碳捕捉","能源轉型"] },
+      { word: "Unsustainability", translation: "不可持續性", options: ["可持續性","不可持續性","全球暖化","氣候變遷"] },
+    ];
+
+    const CHATS = {
+      start: ["嗨！準備好成為環境戰士了嗎？","這些單字有點難，但你一定可以的！","🌍 讓我看看你的能耐！"],
+      select: ["嗯... 這個選擇很有趣！","勇敢地按下檢查鍵吧！","不要猶豫，相信直覺！"],
+      correct: ["太棒了！綠色能源在你心中燃燒！🔥","你真是環境界的救星！","我為你驕傲！乖兒子！"],
+      incorrect: ["喔不！地球正在流淚！💧","沒關係，學習就是不斷嘗試！","別讓這些單字打敗你！再來一次！"],
+      timeLow: ["沙漏快見底了！快點！","滴答、滴答，時間不多了！"],
+      gameOver: ["遊戲結束。但學習永不停止！","今天辛苦了！休息一下吧。"]
+    };
+
+    // ====== 狀態與 DOM ======
+    const STATE = {
+      qIndex: 0,
+      selected: null,
+      checking: false,
+      hearts: CONFIG.heartsInit,
+      timer: CONFIG.timerInit,
+      lastMouse: { x: 0, y: 0 },
+      hitLock: false,
+      running: false,
+      bullets: new Set(), // for RAF 驅動
+      raf: null,
+      intervals: {},
+      owlActive: false,
+      hardMode: false,
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      container: $("gameContainer"),
+      progressBar: $("progressBar"),
+      progressText: $("progressText"),
+      mascot: document.querySelector(".mascot-image"),
+      chat: $("mascotChat"),
+      word: $("wordToTranslate"),
+      options: $("optionsContainer"),
+      check: $("checkButton"),
+      cont: $("continueButton"),
+      feedback: $("feedbackMessage"),
+      footer: $("footer"),
+      hearts: $("heartsDisplay"),
+      timer: $("timerDisplay"),
+      restart: $("restartButton"),
+      edgeFlash: $("edgeFlash"),
+    };
+
+    // ====== 工具函式 ======
+    const randOf = (arr) => arr[Math.floor(Math.random()*arr.length)];
+    const say = (type) => { if (CHATS[type]) els.chat.textContent = randOf(CHATS[type]); };
+    const setText = (el, t) => { el.textContent = t; };
+    const show = (el, isShow=true) => el.classList.toggle("hidden", !isShow);
+    const setFooterState = (state) => {
+      els.footer.classList.remove("footer-correct","footer-incorrect");
+      if (state === "correct") els.footer.classList.add("footer-correct");
+      if (state === "incorrect") els.footer.classList.add("footer-incorrect");
+    };
+    const flashEdge = () => {
+      els.edgeFlash.classList.remove("active"); void els.edgeFlash.offsetWidth; els.edgeFlash.classList.add("active");
+    };
+
+    const withinBounds = (x,y,w,h,margin=50)=> (x>=-margin && x<=w+margin && y>=-margin && y<=h+margin);
+
+    // ====== 生命與傷害 ======
+    function applyDamage(typeKey="primary"){
+      if (STATE.hearts<=0 || STATE.hitLock) return;
+      const dmg = BULLET_TYPES[typeKey]?.damage ?? 1;
+      STATE.hitLock = true;
+      STATE.hearts = Math.max(0, STATE.hearts - dmg);
+      setText(els.hearts, STATE.hearts);
+      flashEdge();
+      els.container.style.backgroundColor = '#ffdddd';
+      setTimeout(()=> els.container.style.backgroundColor = '#fff', 100);
+      setTimeout(()=> STATE.hitLock=false, CONFIG.hitCooldownMs);
+
+      if (STATE.hearts===0) endGame('💔 你輸了！你這個不能回收的垃圾！');
+    }
+
+    function deductHeart(){
+      if (STATE.hearts<=0) return;
+      STATE.hearts--;
+      setText(els.hearts, STATE.hearts);
+      flashEdge();
+      els.container.style.backgroundColor = '#ffdddd';
+      setTimeout(()=> els.container.style.backgroundColor = '#fff', 100);
+      if (STATE.hearts===0) endGame('💔 你屎了！廚餘都比你厲害！');
+    }
+
+    // ====== 子彈系統 (RAF) ======
+    function spawnBullet({x,y,angle,speed,type="primary"}){
+      const meta = BULLET_TYPES[type] || BULLET_TYPES.primary;
+      const node = document.createElement("div");
+      node.className = meta.className;
+      node.style.left = `${x}px`;
+      node.style.top = `${y}px`;
+      els.container.appendChild(node);
+
+      const bullet = { node, x, y, dx: Math.cos(angle)*speed, dy: Math.sin(angle)*speed, type, size: meta.size, alive: true };
+      STATE.bullets.add(bullet);
+      return bullet;
+    }
+
+    function explode(x,y){
+      const e = document.createElement("div");
+      e.className = "explosion";
+      e.style.left = `${x}px`; e.style.top = `${y}px`;
+      els.container.appendChild(e);
+      setTimeout(()=> e.remove(), 300);
+
+      for (let i=0;i<CONFIG.shrapnelCount;i++){
+        const ang = (i/CONFIG.shrapnelCount)*Math.PI*2;
+        spawnBullet({x,y,angle:ang,speed:CONFIG.shrapnelSpeed,type:'shrapnel'});
+      }
+    }
+
+    function bulletsAnimate(){
+        const rect = els.container.getBoundingClientRect();
+
+        // 取消安全區：滑鼠就算在白框外，也夾回白框邊界做碰撞判定
+
+        const mouseX = STATE.lastMouse.x - rect.left;
+        const mouseY = STATE.lastMouse.y - rect.top;
+
+        for (const b of Array.from(STATE.bullets)){
+        if (!b.alive) continue;
+
+        // 移動
+        b.x += b.dx; b.y += b.dy;
+
+        // ★ 地獄模式：邊界反彈（不再出界就消失）
+        if (STATE.hardMode){
+            let bounced = false;
+            if (b.x <= 0 || b.x >= rect.width){
+            b.dx *= -1;
+            b.x = Math.min(Math.max(b.x, 0), rect.width); // 夾回
+            bounced = true;
+            }
+            if (b.y <= 0 || b.y >= rect.height){
+            b.dy *= -1;
+            b.y = Math.min(Math.max(b.y, 0), rect.height); // 夾回
+            bounced = true;
+            }
+            // （可選）若想讓反彈更狠，可在 bounced 時小幅加速或保持
+        } else {
+            // 一般模式：飛出容器就刪掉
+            if (!withinBounds(b.x, b.y, rect.width, rect.height)){
+            b.alive = false; b.node.remove(); STATE.bullets.delete(b);
+            continue;
+            }
+        }
+
+        // 畫面更新
+        b.node.style.left = `${b.x}px`;
+        b.node.style.top  = `${b.y}px`;
+
+        // 命中檢測（用處理後的 mouseX/mouseY）
+        const hitRadius = (b.size/2) + 10;
+        const dist = Math.hypot(mouseX - b.x, mouseY - b.y);
+        if (dist < hitRadius){
+            applyDamage(b.type);
+            if (b.type === 'primary') explode(b.x, b.y);
+            b.alive = false; b.node.remove(); STATE.bullets.delete(b);
+        }
+        }
+
+        STATE.raf = requestAnimationFrame(bulletsAnimate);
+        }
+
+
+    // ====== 攻擊排程 ======
+    function startPrimaryAttack(){
+      STATE.intervals.primary = setInterval(()=>{
+        if (STATE.hearts<=0) return;
+        const rect = els.container.getBoundingClientRect();
+        const w = rect.width, h = rect.height;
+        for (let i=0;i<2;i++){
+          const side = Math.floor(Math.random()*4);
+          let sx, sy;
+          if (side===0){ sx=Math.random()*w; sy=-10; }
+          if (side===1){ sx=Math.random()*w; sy=h+10; }
+          if (side===2){ sx=-10; sy=Math.random()*h; }
+          if (side===3){ sx=w+10; sy=Math.random()*h; }
+
+          const tx = STATE.lastMouse.x - rect.left;
+          const ty = STATE.lastMouse.y - rect.top;
+          const base = Math.atan2(ty - sy, tx - sx);
+          const offset = (Math.random()-0.5) * (Math.PI/4);
+          spawnBullet({x:sx,y:sy,angle:base+offset,speed:CONFIG.primaryBulletSpeed,type:'primary'});
+        }
+      }, CONFIG.primaryFireInterval);
+    }
+
+    function startOwlAttack(){
+      if (STATE.owlActive) return;
+      STATE.owlActive = true;
+      const rect = els.container.getBoundingClientRect();
+      const mRect = els.mascot.getBoundingClientRect();
+      const center = () => ({
+        x: (mRect.left - rect.left) + mRect.width/2,
+        y: (mRect.top  - rect.top ) + mRect.height/2,
+      });
+
+      STATE.intervals.owlBurst = setInterval(()=>{
+        const {x:startX,y:startY} = center();
+        const toMouse = Math.atan2(
+          (STATE.lastMouse.y - rect.top) - startY,
+          (STATE.lastMouse.x - rect.left) - startX
+        );
+        const spread = CONFIG.owlBurstSpreadDeg * Math.PI / 180;
+        [toMouse - spread, toMouse, toMouse + spread].forEach((ang, i)=>{
+          spawnBullet({x:startX,y:startY,angle:ang,speed: i===1 ? 6.5 : 6,type:'owl'});
+        });
+      }, CONFIG.owlBurstInterval);
+
+      STATE.intervals.owlDash = setInterval(()=>{
+        const {x:startX,y:startY} = center();
+        const ang = Math.atan2(
+          (STATE.lastMouse.y - rect.top) - startY,
+          (STATE.lastMouse.x - rect.left) - startX
+        );
+        spawnBullet({x:startX,y:startY,angle:ang,speed:9,type:'owl'});
+      }, CONFIG.owlDashInterval);
+    }
+
+    function stopOwlAttack(){
+      clearInterval(STATE.intervals.owlBurst);
+      clearInterval(STATE.intervals.owlDash);
+      STATE.intervals.owlBurst = STATE.intervals.owlDash = null;
+      STATE.owlActive = false;
+    }
+
+    // ====== 題目流程 ======
+    function updateProgress(){
+      const total = VOCAB.length;
+      const i = STATE.qIndex;
+      els.progressBar.style.width = `${(i/total)*100}%`;
+      setText(els.progressText, `${i+1} / ${total}`);
+    }
+
+    function renderQuestion(){
+      if (STATE.qIndex >= VOCAB.length){ return showResults(); }
+      say('start');
+      STATE.selected = null;
+      STATE.checking = false;
+      updateProgress();
+
+      const q = VOCAB[STATE.qIndex];
+      setText(els.word, q.word);
+
+      els.options.innerHTML = '';
+      q.options.forEach(opt=>{
+        const btn = document.createElement('button');
+        btn.className = 'option-button';
+        btn.textContent = opt;
+        btn.addEventListener('click', ()=>{
+          if (STATE.checking) return;
+          [...els.options.querySelectorAll('.option-button')].forEach(b=>b.classList.remove('selected'));
+          btn.classList.add('selected');
+          STATE.selected = opt;
+          els.check.disabled = false;
+          say('select');
+        });
+        els.options.appendChild(btn);
+      });
+
+      setFooterState(); // 清空 footer 樣式
+      setText(els.feedback, '');
+      els.feedback.className = 'feedback-message';
+      setText(els.check, '檢查');
+      els.check.disabled = true;
+      show(els.check, true);
+      show(els.cont, false);
+
+      // 最後 4 題啟動貓頭鷹
+      const remaining = VOCAB.length - STATE.qIndex;
+        STATE.hardMode = remaining <= 4;           // ← 開關地獄模式
+        if (STATE.hardMode) startOwlAttack(); else stopOwlAttack();
+    }
+
+    function checkAnswer(){
+      if (!STATE.selected || STATE.checking) return;
+      STATE.checking = true;
+      const q = VOCAB[STATE.qIndex];
+      const correct = q.translation;
+      const selectedBtn = els.options.querySelector('.option-button.selected');
+      show(els.check, false);
+
+      const markCorrectButton = ()=>{
+        [...els.options.querySelectorAll('.option-button')].forEach(btn=>{
+          if (btn.textContent === correct) btn.classList.add('correct');
+        });
+      };
+
+      if (STATE.selected === correct){
+        say('correct');
+        setText(els.feedback, '太棒了！答案正確。');
+        els.feedback.classList.add('correct-text');
+        setFooterState('correct');
+        selectedBtn?.classList.add('correct');
+      } else {
+        deductHeart();
+        say('incorrect');
+        setText(els.feedback, `答錯了！正確答案是: ${correct}`);
+        els.feedback.classList.add('incorrect-text');
+        setFooterState('incorrect');
+        selectedBtn?.classList.add('incorrect');
+        markCorrectButton();
+      }
+
+      [...els.options.querySelectorAll('.option-button')].forEach(btn=> btn.disabled = true);
+      show(els.cont, true);
+      els.cont.textContent = '繼續';
+      els.cont.focus();
+    }
+
+    function nextQuestion(){
+      STATE.qIndex++;
+      renderQuestion();
+    }
+
+    // ====== 結算與控制 ======
+    function showResults(){
+      stopTimer(); stopPrimaryAttack(); stopOwlAttack();
+      els.progressBar.style.width = '100%';
+      setText(els.word, '挑戰成功！');
+      els.options.innerHTML = `
+        <div style="text-align:center;padding:40px 0;">
+          <h2 style="color:#58cc02;">你真是個環境戰士！</h2>
+          <p style="font-size:1.2rem;color:#3c3c3c;">恭喜你完成了所有 ${VOCAB.length} 個單字的挑戰！</p>
+          <p style="font-size:1.2rem;color:#3c3c3c;">點擊刷新頁面重新挑戰。</p>
+        </div>`;
+      show(els.check, false); show(els.cont, false);
+      setFooterState(); setText(els.feedback,'全部答對！XP +100！');
+      els.feedback.classList.add('correct-text');
+    }
+
+    function endGame(message){
+      stopTimer(); stopPrimaryAttack(); stopOwlAttack();
+      STATE.running = false;
+      say('gameOver');
+      setText(els.word, '挑戰失敗！');
+      els.options.innerHTML = `<p style="font-size:1.5rem;text-align:center;color:#ff4b4b;padding:30px;">${message}</p>`;
+      show(els.check, false); show(els.cont, false);
+      setFooterState();
+      els.feedback.classList.remove('incorrect-text');
+      els.feedback.innerHTML = `<button id="retryBtn" style="padding:10px 20px;background:#1cb0f6;color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;">重新開始</button>`;
+      $("retryBtn").addEventListener('click', restartGame);
+    }
+
+    function restartGame(){
+      // 清理
+      stopTimer(); stopPrimaryAttack(); stopOwlAttack();
+      cancelAnimationFrame(STATE.raf);
+      for (const b of STATE.bullets){ b.node.remove(); }
+      STATE.bullets.clear();
+
+      // 重置
+      STATE.qIndex = 0; STATE.selected = null; STATE.checking = false;
+      STATE.hearts = CONFIG.heartsInit; STATE.timer = CONFIG.timerInit; STATE.hitLock = false;
+      setText(els.hearts, STATE.hearts);
+      setText(els.timer, STATE.timer); els.timer.style.color = "#3c3c3c";
+      els.container.style.backgroundColor = '#fff';
+      say('start');
+
+      // 重新開始
+      renderQuestion();
+      startTimer();
+      startPrimaryAttack();
+      STATE.raf = requestAnimationFrame(bulletsAnimate);
+      STATE.running = true;
+    }
+
+    // ====== 計時器 ======
+    function startTimer(){
+      STATE.intervals.timer = setInterval(()=>{
+        STATE.timer--;
+        setText(els.timer, STATE.timer);
+        if (STATE.timer <= 10 && STATE.timer > 0) els.timer.style.color = '#ffc800';
+        if (STATE.timer <= 0){
+          els.timer.style.color = '#ff4b4b';
+          endGame('⌛ 時間到！');
+        }
+      }, 1000);
+    }
+    function stopTimer(){ clearInterval(STATE.intervals.timer); STATE.intervals.timer=null; }
+    function stopPrimaryAttack(){ clearInterval(STATE.intervals.primary); STATE.intervals.primary=null; }
+
+    // ====== 事件與初始化 ======
+    document.addEventListener('mousemove', (e)=> { STATE.lastMouse = { x: e.clientX, y: e.clientY }; });
+
+    els.check.addEventListener('click', checkAnswer);
+    els.cont.addEventListener('click', nextQuestion);
+    els.restart.addEventListener('click', restartGame);
+
+    // 啟動
+    (function init(){
+      setText(els.hearts, STATE.hearts);
+      renderQuestion();
+      startTimer();
+      startPrimaryAttack();
+      STATE.raf = requestAnimationFrame(bulletsAnimate);
+      STATE.running = true;
+    })();
+  </script>
+</body>
+</html>
